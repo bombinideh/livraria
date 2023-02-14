@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+
+set -e
+set -u
+
+script_name="$(basename "$0")"
+script_dir="$(realpath "$(dirname "$0")")"
+
+usage() {
+  echo "${script_name}: usage: ${script_name}" >&2
+}
+
+exit_with_error() {
+  echo "${script_name}: error: ${1}" >&2
+  usage
+  exit 1
+}
+
+ensure_directory_exists() {
+  mkdir -p "$(dirname "${1}")"
+}
+
+recieved_arguments="$#"
+expected_arguments="0"
+
+if [ "${recieved_arguments}" != "${expected_arguments}" ]; then
+  exit_with_error "invalid number of arguments, expected \"${expected_arguments}\", recieved \"${recieved_arguments}\""
+fi
+
+backup_directory="$(realpath "${script_dir}/../backups")"
+backup_suffix="$(date +%Y/%m/%d/%Y-%m-%d-%H-%M-%S).sql.gz"
+backup_filepath="${backup_directory}/${backup_suffix}"
+
+ensure_directory_exists "$backup_filepath" &&
+  "$script_dir/create-backup-local" "$backup_filepath" &&
+  "$script_dir/upload" "$backup_directory" "$backup_suffix" &&
+  "$script_dir/clear-backups"

@@ -4,9 +4,9 @@ export const database = knex({
   client: "pg",
   connection: {
     host: "localhost",
-    port: 5432,
-    user: "deborah",
+    port: 59001,
+    user: "livraria_user",
     password: "123456789",
-    database: "projeto",
+    database: "livraria",
   },
 });

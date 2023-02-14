@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+
+set -e
+set -u
+
+script_name="$(basename "$0")"
+script_dir="$(realpath "$(dirname "$0")")"
+
+usage() {
+  echo "${script_name}: usage: ${script_name} BACKUP_DIRECTORY BACKUP_SUFFIX" >&2
+}
+
+exit_with_error() {
+  echo "${script_name}: error: $1" >&2
+  usage
+  exit 1
+}
+
+recieved_arguments="$#"
+expected_arguments="2"
+
+if [ "${recieved_arguments}" != "${expected_arguments}" ]; then
+  exit_with_error "invalid number of arguments, expected \"${expected_arguments}\", recieved \"${recieved_arguments}\""
+fi
+
+extract_variable() {
+  grep "^${1}=" "${2}" | sed -E "s/^${1}=(.*)$/\1/"
+}
+
+upload() {
+  aws_access_key_id="${1}"
+  aws_secret_access_key="${2}"
+  aws_s3_bucket="${3%/}"
+  backup_directory="${4}"
+  backup_suffix="${5}"
+  docker run \
+    --rm \
+    -i \
+    -e "AWS_ACCESS_KEY_ID=$aws_access_key_id" \
+    -e "AWS_SECRET_ACCESS_KEY=$aws_secret_access_key" \
+    -v "$backup_directory:/root/backups" \
+    amazon/aws-cli \
+    s3 cp "/root/backups/$backup_suffix" "${aws_s3_bucket%/}/$backup_suffix"
+}
+
+backup_directory="${1}"
+backup_suffix="${2}"
+
+aws_access_key_id="$(extract_variable "AWS_ACCESS_KEY_ID" "${script_dir}/../.env")"
+aws_secret_access_key="$(extract_variable "AWS_SECRET_ACCESS_KEY" "${script_dir}/../.env")"
+aws_s3_bucket="$(extract_variable "AWS_S3_BUCKET" "${script_dir}/../.env")"
+
+upload \
+  "${aws_access_key_id}" \
+  "${aws_secret_access_key}" \
+  "${aws_s3_bucket}" \
+  "${backup_directory}" \
+  "${backup_suffix}"

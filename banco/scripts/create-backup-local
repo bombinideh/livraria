@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+
+set -e
+set -u
+
+script_name="$(basename "$0")"
+script_dir="$(realpath "$(dirname "$0")")"
+
+usage() {
+  echo "${script_name}: usage: ${script_name} BACKUP_RELATIVE_FILENAME" >&2
+}
+
+exit_with_error() {
+  echo "${script_name}: error: $1" >&2
+  usage
+  exit 1
+}
+
+recieved_arguments="$#"
+expected_arguments="1"
+
+if [ "${recieved_arguments}" != "${expected_arguments}" ]; then
+  exit_with_error "invalid number of arguments, expected \"${expected_arguments}\", recieved \"${recieved_arguments}\""
+fi
+
+extract_variable() {
+  grep "^${1}=" "${2}" | sed -E "s/^${1}=(.*)$/\1/"
+}
+
+create_backup() {
+  port="${1}"
+  user="${2}"
+  password="${3}"
+  database="${4}"
+
+  docker-compose \
+    -f "${script_dir}/../docker-compose.yml" \
+    exec \
+    -T \
+    --env PGPASSWORD="${password}" \
+    postgres \
+    pg_dump \
+    --host="localhost" \
+    --port="${port}" \
+    --username="${user}" \
+    --dbname="${database}"
+}
+
+destination="${1}" &&
+  port="$(extract_variable "POSTGRES_PORT" "${script_dir}/../.env")" &&
+  user="$(extract_variable "POSTGRES_USER" "${script_dir}/../.env")" &&
+  password="$(extract_variable "POSTGRES_PASSWORD" "${script_dir}/../.env")" &&
+  database="$(extract_variable "POSTGRES_DB" "${script_dir}/../.env")" &&
+  create_backup "${port}" "${user}" "${password}" "${database}" | gzip >"${destination}"

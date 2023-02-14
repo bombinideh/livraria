@@ -147,7 +147,7 @@ app.get("/livros", async (req, res) => {
     return res.status(200).json(rows);
   } catch (error) {
     console.error(error);
-    return res.status(400).json(error);
+    return res.status(500).json(error);
   }
 });
 app.get("/livros/:id", async (req, res) => {
@@ -215,5 +215,34 @@ app.patch(
     return res.status(201).json(update);
   })
 );
+
+app.get("/clintes", async (req, res) => {
+  try {
+    const rows = await database("clientes").select("id", "nome", "cpf");
+    return res.status(201).json(rows);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).end();
+  }
+});
+
+app.get("/")
+app.post("/clientes", async (req, res) => {
+  try {
+    const input = req.body;
+    const exist = await database("clientes")
+      .where({ cpf: inputp["cpf"] })
+      .first("id");
+
+    if (exist) {
+      return res.status(400).json({ message: "Esse cliente já existe" });
+    }
+    const novo = await database("clientes").insert(input, "id");
+    return res.status(201).json("Cliente cadastrado com sucesso!");
+  } catch (error) {
+    console.error(error);
+    return res.status(500).end();
+  }
+});
 
 app.listen(5008);
