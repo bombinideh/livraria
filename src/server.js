@@ -8,7 +8,7 @@ app.use(express.json());
 //routes
 
 //all users
-app.get("/users", async (req, res) => {
+app.get("/usuario", async (req, res) => {
   try {
     const rows = await database("usuarios").select(
       "id",
@@ -216,7 +216,7 @@ app.patch(
   })
 );
 
-app.get("/clintes", async (req, res) => {
+app.get("/clientes", async (req, res) => {
   try {
     const rows = await database("clientes").select("id", "nome", "cpf");
     return res.status(201).json(rows);
@@ -226,12 +226,28 @@ app.get("/clintes", async (req, res) => {
   }
 });
 
-app.get("/")
+app.get("/clientes/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const clientes = await database("clientes").where({ id }).select().first();
+
+    if (!clientes) {
+      return res
+        .status(400)
+        .json({ message: `Não existe cliente com o id ${id}.` });
+    }
+    return res.status(201).json(clientes);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).end();
+  }
+});
 app.post("/clientes", async (req, res) => {
   try {
     const input = req.body;
     const exist = await database("clientes")
-      .where({ cpf: inputp["cpf"] })
+      .where({ cpf: input["cpf"] })
       .first("id");
 
     if (exist) {
@@ -244,5 +260,33 @@ app.post("/clientes", async (req, res) => {
     return res.status(500).end();
   }
 });
+app.patch("/clientes/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
 
+    const exist = await database("clientes").where({ id }).first();
+
+    if (!exist) {
+      return res.status(400).json({ message: `Cliente ${id} não encontrado` });
+    }
+    const input = req.body;
+
+    const update = await database("clientes").where({ id }).update(input, "*");
+
+    return res.status(201).json({ update });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).end();
+  }
+});
+
+app.post("/emprestimo-livro", async (req, res) => {
+  try {
+    const { livros, ...input } = req.body;
+    input = await database("emprestimos");
+  } catch (error) {
+    console.error(error);
+    return res.status(500).end();
+  }
+});
 app.listen(5008);
